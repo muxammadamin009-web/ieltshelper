@@ -7,21 +7,27 @@ export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  // Проверка токена при загрузке
-  useEffect(() => {
+  const fetchMe = async () => {
     const token = localStorage.getItem('token');
     if (!token) {
+      setUser(null);
       setLoading(false);
       return;
     }
-    api
-      .get('/auth/me')
-      .then((res) => setUser(res.data.user || res.data))
-      .catch(() => {
-        localStorage.removeItem('token');
-        setUser(null);
-      })
-      .finally(() => setLoading(false));
+    try {
+      const res = await api.get('/auth/me');
+      setUser(res.data.user || res.data);
+    } catch (err) {
+      console.error('Failed to authenticate token:', err);
+      localStorage.removeItem('token');
+      setUser(null);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchMe();
   }, []);
 
   const login = async (email, password) => {
@@ -29,18 +35,19 @@ export const AuthProvider = ({ children }) => {
     if (res.data.token) {
       localStorage.setItem('token', res.data.token);
     }
-    setUser(res.data.user);
-    return res.data.user;
+    const userData = res.data.user || res.data;
+    setUser(userData);
+    return userData;
   };
 
   const signup = async (name, email, password) => {
-    // Используем /auth/signup строго под ваш бекенд!
     const res = await api.post('/auth/signup', { name, email, password });
     if (res.data.token) {
       localStorage.setItem('token', res.data.token);
     }
-    setUser(res.data.user);
-    return res.data.user;
+    const userData = res.data.user || res.data;
+    setUser(userData);
+    return userData;
   };
 
   const logout = () => {
@@ -50,7 +57,7 @@ export const AuthProvider = ({ children }) => {
 
   return (
     <AuthContext.Provider value={{ user, loading, login, signup, logout }}>
-      {!loading && children}
+      {children}
     </AuthContext.Provider>
   );
 };
