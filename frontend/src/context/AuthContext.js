@@ -7,7 +7,7 @@ export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  // При первой загрузке проверяем токен
+  // Проверка токена при загрузке
   useEffect(() => {
     const token = localStorage.getItem('token');
     if (!token) {
@@ -16,10 +16,7 @@ export const AuthProvider = ({ children }) => {
     }
     api
       .get('/auth/me')
-      .then((res) => {
-        // Поддержка обеих структур ответа (res.data.user или res.data)
-        setUser(res.data.user || res.data);
-      })
+      .then((res) => setUser(res.data.user || res.data))
       .catch(() => {
         localStorage.removeItem('token');
         setUser(null);
@@ -29,31 +26,21 @@ export const AuthProvider = ({ children }) => {
 
   const login = async (email, password) => {
     const res = await api.post('/auth/login', { email, password });
-    
-    const token = res.data.token;
-    const userData = res.data.user || res.data;
-
-    if (token) {
-      localStorage.setItem('token', token);
+    if (res.data.token) {
+      localStorage.setItem('token', res.data.token);
     }
-    
-    setUser(userData);
-    return userData;
+    setUser(res.data.user);
+    return res.data.user;
   };
 
   const signup = async (name, email, password) => {
-    // ВАЖНО: заменено с /auth/signup на /auth/register
-    const res = await api.post('/auth/register', { name, email, password });
-    
-    const token = res.data.token;
-    const userData = res.data.user || res.data;
-
-    if (token) {
-      localStorage.setItem('token', token);
+    // Используем /auth/signup строго под ваш бекенд!
+    const res = await api.post('/auth/signup', { name, email, password });
+    if (res.data.token) {
+      localStorage.setItem('token', res.data.token);
     }
-
-    setUser(userData);
-    return userData;
+    setUser(res.data.user);
+    return res.data.user;
   };
 
   const logout = () => {
